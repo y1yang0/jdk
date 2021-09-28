@@ -776,7 +776,7 @@ class CFGEdge : public ResourceObj {
   double  freq() const { return _freq; }
   Block* from() const { return _from; }
   Block* to  () const { return _to;   }
-  int  infrequent() const { return _infrequent; }
+  bool infrequent() const { return _infrequent; }
   int state() const { return _state; }
 
   void set_state(int state) { _state = state; }
@@ -902,6 +902,9 @@ class PhaseBlockLayout : public Phase {
   void merge_traces(bool loose_connections);
   void reorder_traces(int count);
   void union_traces(Trace* from, Trace* to);
+#ifndef PRODUCT
+  void dump();
+#endif
 };
 
 #endif // SHARE_OPTO_BLOCK_HPP

@@ -1441,6 +1441,26 @@ extern "C" int trace_frequency_order(const void *p0, const void *p1) {
   return diff;
 }
 
+#ifndef PRODUCT
+// Dump all CFG edges and existing Traces
+void PhaseBlockLayout::dump() {
+  ResourceMark rm;
+  tty->print_cr("===EDGES===");
+  for (int i = 0; i < edges->length(); i++) {
+    edges->at(i)->dump();
+  }
+  tty->print_cr("===TRACES==");
+  for (int i = 0; i < (int)_cfg.number_of_blocks(); i++) {
+    Block *b = _cfg.get_block(i);
+    Trace *t = traces[b->_pre_order];
+    if (t != NULL)
+    {
+      t->dump();
+    }
+  }
+}
+#endif
+
 // Find edges of interest, i.e, those which can fall through. Presumes that
 // edges which don't fall through are of low frequency and can be generally
 // ignored.  Initialize the list of traces.
@@ -1554,24 +1574,54 @@ void PhaseBlockLayout::grow_traces() {
 
     Trace *src_trace = trace(src_block);
     Trace *targ_trace = trace(targ_block);
-
+    bool src_at_tail = src_trace->last_block() == src_block;
+    bool targ_at_start = targ_trace->first_block() == targ_block;
+    if (src_trace == targ_trace) {
+      e->set_state(CFGEdge::interior);
+      if (src_at_tail && targ_trace->backedge(e)) {
+        // Reset i to catch any newly eligible edge
+        // (Or we could remember the first "open" edge, and reset there)
+        i = 0;
+      }
+      continue;
+    }
+    ResourceMark rm;
     // If the edge in question can join two traces at their ends,
     // append one trace to the other.
-   if (src_trace->last_block() == src_block) {
-      if (src_trace == targ_trace) {
-        e->set_state(CFGEdge::interior);
-        if (targ_trace->backedge(e)) {
-          // Reset i to catch any newly eligible edge
-          // (Or we could remember the first "open" edge, and reset there)
-          i = 0;
-        }
-      } else if (targ_trace->first_block() == targ_block) {
+    if (src_at_tail && targ_at_start) {
         e->set_state(CFGEdge::connected);
         src_trace->append(targ_trace);
         union_traces(src_trace, targ_trace);
+    } else if (src_at_tail) {
+        if (!e->infrequent() && src_trace != trace(_cfg.get_root_block())) {
+          e->set_state(CFGEdge::connected);
+          targ_trace->insert_before(targ_block, src_trace);
+          union_traces(targ_trace, src_trace);
+        }
+      } else if (targ_at_start) {
+        // Insert the "targ" trace in the "src" trace if the insertion point
+        // is a two way branch.
+        // Better profitability check possible, but may not be worth it.
+        // Someday, see if the this "fork" has an associated "join";
+        // then make a policy on merging this trace at the fork or join.
+        // For example, other things being equal, it may be better to place this
+        // trace at the join point if the "src" trace ends in a two-way, but
+        // the insertion point is one-way.
+        if (!e->infrequent()) {
+          if (src_block->num_fall_throughs() !=2 ) {
+//            Compile::current()->igv_print_method_to_file("debug");
+            e->dump();
+            src_block->dump();
+            targ_block->dump();
+            assert(src_block->num_fall_throughs() == 2, "unexpected diamond");
+          }
+          e->set_state(CFGEdge::connected);
+          src_trace->insert_after(src_block, targ_trace);
+          union_traces(src_trace, targ_trace);
+        }
+      } else {
       }
     }
-  }
 }
 
 // Embed one trace into another, if the fork or join points are sufficiently
@@ -1712,7 +1762,7 @@ PhaseBlockLayout::PhaseBlockLayout(PhaseCFG &cfg)
 
   // Merge one trace into another, but only at fall-through points.
   // This may make diamonds and other related shapes in a trace.
-  merge_traces(true);
+  //merge_traces(true);
 
   // Run merge again, allowing two traces to be catenated, even if
   // one does not fall through into the other. This appends loosely
