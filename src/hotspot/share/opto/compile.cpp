@@ -4795,7 +4795,6 @@ void Compile::end_method(int level) {
 }
 
 
-#ifndef PRODUCT
 IdealGraphPrinter* Compile::_debug_file_printer = NULL;
 IdealGraphPrinter* Compile::_debug_network_printer = NULL;
 
@@ -4867,7 +4866,6 @@ void Compile::igv_print_method_to_network(const char* phase_name) {
   tty->print_cr("Method printed over network stream to IGV");
   _debug_network_printer->print(phase_name, (Node*)C->root());
 }
-#endif
 
 void Compile::add_native_invoker(RuntimeStub* stub) {
   _native_invokers.append(stub);

@@ -349,11 +349,9 @@ class Compile : public Phase {
   GrowableArray<Node*>  _for_post_loop_igvn;    // List of nodes for IGVN after loop opts are over
   GrowableArray<Node_List*> _coarsened_locks;   // List of coarsened Lock and Unlock nodes
   ConnectionGraph*      _congraph;
-#ifndef PRODUCT
   IdealGraphPrinter*    _printer;
   static IdealGraphPrinter* _debug_file_printer;
   static IdealGraphPrinter* _debug_network_printer;
-#endif
 
 
   // Node management

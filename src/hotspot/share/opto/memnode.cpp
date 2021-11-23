@@ -1087,6 +1087,12 @@ Node* MemNode::can_see_stored_value(Node* st, PhaseTransform* phase) const {
           MergeMemNode* merge = mem->as_MergeMem();
           Node* new_st = merge->memory_at(alias_idx);
           if (new_st == merge->base_memory()) {
+            if (new_st == current) {
+              current->dump();
+              mem->dump();
+              Compile::current()->igv_print_method_to_file("MemNode_can_see_stored_value");
+              guarantee(false, "possibly problematic IR, dumped IR to custom_debug.xml");
+            }
             // Keep searching
             current = new_st;
             continue;
