@@ -1895,119 +1895,14 @@ encode %{
 
   enc_class cdql_enc(no_rax_rdx_RegI div)
   %{
-    // Full implementation of Java idiv and irem; checks for
-    // special case as described in JVM spec., p.243 & p.271.
-    //
-    //         normal case                           special case
-    //
-    // input : rax: dividend                         min_int
-    //         reg: divisor                          -1
-    //
-    // output: rax: quotient  (= rax idiv reg)       min_int
-    //         rdx: remainder (= rax irem reg)       0
-    //
-    //  Code sequnce:
-    //
-    //    0:   3d 00 00 00 80          cmp    $0x80000000,%eax
-    //    5:   75 07/08                jne    e <normal>
-    //    7:   33 d2                   xor    %edx,%edx
-    //  [div >= 8 -> offset + 1]
-    //  [REX_B]
-    //    9:   83 f9 ff                cmp    $0xffffffffffffffff,$div
-    //    c:   74 03/04                je     11 <done>
-    // 000000000000000e <normal>:
-    //    e:   99                      cltd
-    //  [div >= 8 -> offset + 1]
-    //  [REX_B]
-    //    f:   f7 f9                   idiv   $div
-    // 0000000000000011 <done>:
     MacroAssembler _masm(&cbuf);
-    Label normal;
-    Label done;
-
-    // cmp    $0x80000000,%eax
-    __ cmpl(as_Register(RAX_enc), 0x80000000);
-
-    // jne    e <normal>
-    __ jccb(Assembler::notEqual, normal);
-
-    // xor    %edx,%edx
-    __ xorl(as_Register(RDX_enc), as_Register(RDX_enc));
-
-    // cmp    $0xffffffffffffffff,%ecx
-    __ cmpl($div$$Register, -1);
-
-    // je     11 <done>
-    __ jccb(Assembler::equal, done);
-
-    // <normal>
-    // cltd
-    __ bind(normal);
-    __ cdql();
-
-    // idivl
-    // <done>
-    __ idivl($div$$Register);
-    __ bind(done);
+    __ corrected_idivl($div$$Register);
   %}
 
   enc_class cdqq_enc(no_rax_rdx_RegL div)
   %{
-    // Full implementation of Java ldiv and lrem; checks for
-    // special case as described in JVM spec., p.243 & p.271.
-    //
-    //         normal case                           special case
-    //
-    // input : rax: dividend                         min_long
-    //         reg: divisor                          -1
-    //
-    // output: rax: quotient  (= rax idiv reg)       min_long
-    //         rdx: remainder (= rax irem reg)       0
-    //
-    //  Code sequnce:
-    //
-    //    0:   48 ba 00 00 00 00 00    mov    $0x8000000000000000,%rdx
-    //    7:   00 00 80
-    //    a:   48 39 d0                cmp    %rdx,%rax
-    //    d:   75 08                   jne    17 <normal>
-    //    f:   33 d2                   xor    %edx,%edx
-    //   11:   48 83 f9 ff             cmp    $0xffffffffffffffff,$div
-    //   15:   74 05                   je     1c <done>
-    // 0000000000000017 <normal>:
-    //   17:   48 99                   cqto
-    //   19:   48 f7 f9                idiv   $div
-    // 000000000000001c <done>:
     MacroAssembler _masm(&cbuf);
-    Label normal;
-    Label done;
-
-    // mov    $0x8000000000000000,%rdx
-    __ mov64(as_Register(RDX_enc), 0x8000000000000000);
-
-    // cmp    %rdx,%rax
-    __ cmpq(as_Register(RAX_enc), as_Register(RDX_enc));
-
-    // jne    17 <normal>
-    __ jccb(Assembler::notEqual, normal);
-
-    // xor    %edx,%edx
-    __ xorl(as_Register(RDX_enc), as_Register(RDX_enc));
-
-    // cmp    $0xffffffffffffffff,$div
-    __ cmpq($div$$Register, -1);
-
-    // je     1e <done>
-    __ jccb(Assembler::equal, done);
-
-    // <normal>
-    // cqto
-    __ bind(normal);
-    __ cdqq();
-
-    // idivq (note: must be emitted by the user of this rule)
-    // <done>
-    __ idivq($div$$Register);
-    __ bind(done);
+    __ corrected_idivq($div$$Register);
   %}
 
   // Opcde enc_class for 8/32 bit immediate instructions with sign-extension
