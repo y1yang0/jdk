@@ -1518,7 +1518,7 @@ const intx ObjectAlignmentInBytes = 8;
           "Compiler Thread Stack Size (in Kbytes)")                         \
           range(0, max_intx/(1 * K))                                        \
                                                                             \
-  develop_pd(size_t, JVMInvokeMethodSlack,                                  \
+  develop_pd(size_t, JVMInvokeMethodStack,                                  \
           "Stack space (bytes) required for JVM_InvokeMethod to complete")  \
                                                                             \
   /* code cache parameters                                    */            \

@@ -35,7 +35,7 @@ define_pd_global(intx, CompilerThreadStackSize,  512);
 define_pd_global(intx, ThreadStackSize,          320);
 define_pd_global(intx, VMThreadStackSize,        512);
 
-define_pd_global(size_t, JVMInvokeMethodSlack,   8192);
+define_pd_global(size_t, JVMInvokeMethodStack,   8192);
 
 // Used on 64 bit platforms for UseCompressedOops base address or CDS
 define_pd_global(size_t, HeapBaseMinAddress,     2*G);
