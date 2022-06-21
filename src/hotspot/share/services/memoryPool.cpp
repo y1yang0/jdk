@@ -184,8 +184,9 @@ MemoryUsage CodeHeapPool::get_memory_usage() {
   return MemoryUsage(initial_size(), used, committed, maxSize);
 }
 
-// Note, any NonHeap pools would be counted into Non-Heap memory by MemoryMXBean.getNonHeapMemoryUsage.
-// Make sure that it behaves as you expected if you want to add a new type of NonHeap pool
+// Any NonHeap pools would be counted into Non-Heap memory by MemoryMXBean.getNonHeapMemoryUsage.
+// Make sure that it behaves as you expected if you want to add a new type of NonHeap pool, and
+// update comments in jmm_GetMemoryUsage
 MetaspacePool::MetaspacePool() :
   MemoryPool("Metaspace", NonHeap, 0, calculate_max_size(), true, false) { }
 
