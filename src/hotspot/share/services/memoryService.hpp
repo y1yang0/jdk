@@ -57,7 +57,6 @@ private:
   static GrowableArray<MemoryPool*>*    _code_heap_pools;
 
   static MemoryPool*                    _metaspace_pool;
-  static MemoryPool*                    _compressed_class_pool;
 
 public:
   static void set_universe_heap(CollectedHeap* heap);
@@ -77,6 +76,9 @@ public:
   static MemoryPool* get_memory_pool(int index) {
     return _pools_list->at(index);
   }
+  static void add_memory_pool(MemoryPool* pool) {
+    _pools_list->append(pool);
+  }
 
   static MemoryManager* get_memory_manager(int index) {
     return _managers_list->at(index);
@@ -91,9 +93,6 @@ public:
   }
   static void track_metaspace_memory_usage() {
     track_memory_pool_usage(_metaspace_pool);
-  }
-  static void track_compressed_class_memory_usage() {
-    track_memory_pool_usage(_compressed_class_pool);
   }
   static void track_memory_pool_usage(MemoryPool* pool);
 

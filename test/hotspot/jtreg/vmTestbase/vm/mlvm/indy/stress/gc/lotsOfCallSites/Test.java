@@ -125,14 +125,7 @@ public class Test extends MlvmTest {
     }
 
     private MemoryPoolMXBean getClassMetadataMemoryPoolMXBean() {
-    MemoryMXBean mbean = ManagementFactory.getMemoryMXBean();
-    for (MemoryPoolMXBean memPool : ManagementFactory.getMemoryPoolMXBeans()) {
-            String name = memPool.getName();
-        if ((name.contains("Compressed class space") || name.contains("Metaspace")) && memPool.getUsage() != null) {
-                return memPool;
-            }
-        }
-        return null;
+        return (MemoryPoolMXBean)WHITE_BOX.getCompressedClassMemoryPool();
     }
 
     @Override

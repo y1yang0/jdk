@@ -23,6 +23,8 @@
 
 package gc.metaspace;
 
+import sun.hotspot.WhiteBox;
+
 import java.util.List;
 import java.lang.management.*;
 import jdk.test.lib.Platform;
@@ -37,10 +39,12 @@ import static jdk.test.lib.Asserts.*;
  * @library /
  * @modules java.base/jdk.internal.misc
  *          java.management
- * @run main/othervm -XX:+IgnoreUnrecognizedVMOptions -XX:-UseCompressedOops gc.metaspace.TestMetaspaceMemoryPool
- * @run main/othervm -XX:+IgnoreUnrecognizedVMOptions -XX:-UseCompressedOops -XX:MaxMetaspaceSize=60m gc.metaspace.TestMetaspaceMemoryPool
- * @run main/othervm -XX:+IgnoreUnrecognizedVMOptions -XX:+UseCompressedOops -XX:+UseCompressedClassPointers gc.metaspace.TestMetaspaceMemoryPool
- * @run main/othervm -XX:+IgnoreUnrecognizedVMOptions -XX:+UseCompressedOops -XX:+UseCompressedClassPointers -XX:CompressedClassSpaceSize=60m gc.metaspace.TestMetaspaceMemoryPool
+ * @build sun.hotspot.WhiteBox
+ * @run driver jdk.test.lib.helpers.ClassFileInstaller sun.hotspot.WhiteBox
+ * @run main/othervm -Xbootclasspath/a:. -XX:+UnlockDiagnosticVMOptions -XX:+WhiteBoxAPI -XX:+IgnoreUnrecognizedVMOptions -XX:-UseCompressedOops gc.metaspace.TestMetaspaceMemoryPool
+ * @run main/othervm -Xbootclasspath/a:. -XX:+UnlockDiagnosticVMOptions -XX:+WhiteBoxAPI -XX:+IgnoreUnrecognizedVMOptions -XX:-UseCompressedOops -XX:MaxMetaspaceSize=60m gc.metaspace.TestMetaspaceMemoryPool
+ * @run main/othervm -Xbootclasspath/a:. -XX:+UnlockDiagnosticVMOptions -XX:+WhiteBoxAPI -XX:+IgnoreUnrecognizedVMOptions -XX:+UseCompressedOops -XX:+UseCompressedClassPointers gc.metaspace.TestMetaspaceMemoryPool
+ * @run main/othervm -Xbootclasspath/a:. -XX:+UnlockDiagnosticVMOptions -XX:+WhiteBoxAPI -XX:+IgnoreUnrecognizedVMOptions -XX:+UseCompressedOops -XX:+UseCompressedClassPointers -XX:CompressedClassSpaceSize=60m gc.metaspace.TestMetaspaceMemoryPool
  */
 public class TestMetaspaceMemoryPool {
     public static void main(String[] args) {
@@ -69,6 +73,9 @@ public class TestMetaspaceMemoryPool {
     }
 
     private static MemoryPoolMXBean getMemoryPool(String name) {
+        if (name.equals("Compressed Class Space")) {
+            return (MemoryPoolMXBean)WhiteBox.getWhiteBox().getCompressedClassMemoryPool();
+        }
         List<MemoryPoolMXBean> pools = ManagementFactory.getMemoryPoolMXBeans();
         for (MemoryPoolMXBean pool : pools) {
             if (pool.getName().equals(name)) {

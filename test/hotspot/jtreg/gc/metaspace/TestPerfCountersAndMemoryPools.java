@@ -26,6 +26,8 @@ package gc.metaspace;
 import java.util.List;
 import java.lang.management.*;
 
+import sun.hotspot.WhiteBox;
+
 import jdk.test.lib.Platform;
 import static jdk.test.lib.Asserts.*;
 import gc.testlibrary.PerfCounters;
@@ -36,11 +38,13 @@ import gc.testlibrary.PerfCounters;
  * @requires vm.gc.Serial
  * @summary Tests that a MemoryPoolMXBeans and PerfCounters for metaspace
  *          report the same data.
+ * @build sun.hotspot.WhiteBox
+ * @run driver jdk.test.lib.helpers.ClassFileInstaller sun.hotspot.WhiteBox
  * @modules java.base/jdk.internal.misc
  *          java.management
  *          jdk.internal.jvmstat/sun.jvmstat.monitor
- * @run main/othervm -XX:+IgnoreUnrecognizedVMOptions -Xlog:class+load,class+unload=trace -XX:-UseCompressedOops -XX:-UseCompressedClassPointers -XX:+UseSerialGC -XX:+UsePerfData -Xint gc.metaspace.TestPerfCountersAndMemoryPools
- * @run main/othervm -XX:+IgnoreUnrecognizedVMOptions -Xlog:class+load,class+unload=trace -XX:+UseCompressedOops -XX:+UseCompressedClassPointers -XX:+UseSerialGC -XX:+UsePerfData -Xint gc.metaspace.TestPerfCountersAndMemoryPools
+ * @run main/othervm -Xbootclasspath/a:. -XX:+UnlockDiagnosticVMOptions -XX:+WhiteBoxAPI -XX:+IgnoreUnrecognizedVMOptions -Xlog:class+load,class+unload=trace -XX:-UseCompressedOops -XX:-UseCompressedClassPointers -XX:+UseSerialGC -XX:+UsePerfData -Xint gc.metaspace.TestPerfCountersAndMemoryPools
+ * @run main/othervm -Xbootclasspath/a:. -XX:+UnlockDiagnosticVMOptions -XX:+WhiteBoxAPI -XX:+IgnoreUnrecognizedVMOptions -Xlog:class+load,class+unload=trace -XX:+UseCompressedOops -XX:+UseCompressedClassPointers -XX:+UseSerialGC -XX:+UsePerfData -Xint gc.metaspace.TestPerfCountersAndMemoryPools
  */
 public class TestPerfCountersAndMemoryPools {
     public static void main(String[] args) throws Exception {
@@ -52,6 +56,9 @@ public class TestPerfCountersAndMemoryPools {
     }
 
     private static MemoryPoolMXBean getMemoryPool(String memoryPoolName) {
+        if (memoryPoolName.equals("Compressed Class Space")) {
+            return (MemoryPoolMXBean)WhiteBox.getWhiteBox().getCompressedClassMemoryPool();
+        }
         List<MemoryPoolMXBean> pools = ManagementFactory.getMemoryPoolMXBeans();
         for (MemoryPoolMXBean pool : pools) {
             if (pool.getName().equals(memoryPoolName)) {

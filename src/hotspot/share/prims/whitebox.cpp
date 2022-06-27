@@ -90,6 +90,8 @@
 #include "services/mallocSiteTable.hpp"
 #include "services/memoryService.hpp"
 #include "services/memTracker.hpp"
+#include "services/memoryPool.hpp"
+#include "services/memoryManager.hpp"
 #include "utilities/align.hpp"
 #include "utilities/debug.hpp"
 #include "utilities/elfFile.hpp"
@@ -2480,7 +2482,7 @@ WB_ENTRY(jboolean, WB_IsJVMTIIncluded(JNIEnv* env, jobject wb))
 WB_END
 
 WB_ENTRY(void, WB_WaitUnsafe(JNIEnv* env, jobject wb, jint time))
-    os::naked_short_sleep(time);
+  os::naked_short_sleep(time);
 WB_END
 
 WB_ENTRY(jstring, WB_GetLibcName(JNIEnv* env, jobject o))
@@ -2496,6 +2498,37 @@ WB_END
 
 WB_ENTRY(void, WB_UnlockCritical(JNIEnv* env, jobject wb))
   GCLocker::unlock_critical(thread);
+WB_END
+
+class CompressedKlassSpacePool : public MemoryPool {
+ public:
+  CompressedKlassSpacePool() :
+    MemoryPool("Compressed Class Space", NonHeap, 0, CompressedClassSpaceSize, true, false) {}
+
+  size_t used_in_bytes() {
+    return MetaspaceUtils::used_bytes(Metaspace::ClassType);
+  }
+
+  MemoryUsage get_memory_usage() {
+    MetaspaceStats stats = MetaspaceUtils::get_statistics(Metaspace::ClassType);
+    return MemoryUsage(initial_size(), stats.used(), stats.committed(), max_size());
+  }
+};
+
+WB_ENTRY(jobject, WB_GetCompressedClassMemoryPool(JNIEnv* env))
+  if (!UseCompressedClassPointers) {
+    THROW_MSG_NULL(vmSymbols::java_lang_UnsupportedOperationException(), "WB_GetCompressedClassMemoryPool: UseCompressedClassPointers is not enabled");
+  }
+
+  CompressedKlassSpacePool* klass_pool = new CompressedKlassSpacePool();
+  // Only creating CompressedKlssSpacePool is not sufficient, in that way, we
+  // got serveral exceptions when using MemoryPoolMXBean.getUsage, becasue
+  // MemoryPoolMXBean.getUsage iterately looks up pool from pool list and
+  // computes its memory usage. We must add it to pool_list and MemoryManager
+  // to let them aware of this newly created pool.
+  MemoryService::add_memory_pool(klass_pool);
+  instanceOop p = klass_pool->get_memory_pool_instance(CHECK_NULL);
+  return JNIHandles::make_local(THREAD, p);
 WB_END
 
 #define CC (char*)
@@ -2773,6 +2806,7 @@ static JNINativeMethod methods[] = {
 
   {CC"lockCritical",    CC"()V",                      (void*)&WB_LockCritical},
   {CC"unlockCritical",  CC"()V",                      (void*)&WB_UnlockCritical},
+  {CC"getCompressedClassMemoryPool",  CC"()Ljava/lang/Object;", (void*)&WB_GetCompressedClassMemoryPool},
 };
 
 
