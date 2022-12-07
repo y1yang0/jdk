@@ -630,20 +630,14 @@ StringConcat* PhaseStringOpts::build_candidate(CallStaticJavaNode* call) {
   return NULL;
 }
 
+static jint SIZE_TABLE[] = { 9, 99, 999, 9999, 99999, 999999, 9999999,
+                             99999999, 999999999, 0x7fffffff };
 
 PhaseStringOpts::PhaseStringOpts(PhaseGVN* gvn):
   Phase(StringOpts),
   _gvn(gvn) {
 
   assert(OptimizeStringConcat, "shouldn't be here");
-
-  size_table_field = C->env()->Integer_klass()->get_field_by_name(ciSymbol::make("sizeTable"),
-                                                                  ciSymbols::int_array_signature(), true);
-  if (size_table_field == NULL) {
-    // Something wrong so give up.
-    assert(false, "why can't we find Integer.sizeTable?");
-    return;
-  }
 
   // Collect the types needed to talk about the various slices of memory
   byte_adr_idx = C->get_alias_index(TypeAryPtr::BYTES);
@@ -1168,40 +1162,9 @@ bool StringConcat::validate_control_flow() {
   return !fail;
 }
 
-Node* PhaseStringOpts::fetch_static_field(GraphKit& kit, ciField* field) {
-  const TypeInstPtr* mirror_type = TypeInstPtr::make(field->holder()->java_mirror());
-  Node* klass_node = __ makecon(mirror_type);
-  BasicType bt = field->layout_type();
-  ciType* field_klass = field->type();
-
-  const Type *type;
-  if( bt == T_OBJECT ) {
-    if (!field->type()->is_loaded()) {
-      type = TypeInstPtr::BOTTOM;
-    } else if (field->is_static_constant()) {
-      // This can happen if the constant oop is non-perm.
-      ciObject* con = field->constant_value().as_object();
-      // Do not "join" in the previous type; it doesn't add value,
-      // and may yield a vacuous result if the field is of interface type.
-      type = TypeOopPtr::make_from_constant(con, true)->isa_oopptr();
-      assert(type != NULL, "field singleton type must be consistent");
-      return __ makecon(type);
-    } else {
-      type = TypeOopPtr::make_from_klass(field_klass->as_klass());
-    }
-  } else {
-    type = Type::get_const_basic_type(bt);
-  }
-
-  return kit.make_load(NULL, kit.basic_plus_adr(klass_node, field->offset_in_bytes()),
-                       type, T_OBJECT,
-                       C->get_alias_index(mirror_type->add_offset(field->offset_in_bytes())),
-                       MemNode::unordered);
-}
-
 Node* PhaseStringOpts::int_stringSize(GraphKit& kit, Node* arg) {
   if (arg->is_Con()) {
-    // Constant integer. Compute constant length using Integer.sizeTable
+    // Constant integer. Compute constant length
     int arg_val = arg->get_int();
     int count = 1;
     if (arg_val < 0) {
@@ -1213,15 +1176,30 @@ Node* PhaseStringOpts::int_stringSize(GraphKit& kit, Node* arg) {
       arg_val = -arg_val;
       count++;
     }
-
-    ciArray* size_table = (ciArray*)size_table_field->constant_value().as_object();
-    for (int i = 0; i < size_table->length(); i++) {
-      if (arg_val <= size_table->element_value(i).as_int()) {
+    for (size_t i = 0; i < sizeof(SIZE_TABLE) / sizeof(SIZE_TABLE[0]); i++) {
+      if (arg_val <= SIZE_TABLE[i]) {
         count += i;
         break;
       }
     }
     return __ intcon(count);
+  }
+
+  // int[] sizeTable = new int[10];
+  // sizeTable[0] = 9;
+  // sizeTable[1] = 99;
+  // ...
+  // sizeTable[9] = Integer.MAX_VALUE
+  Node* sizeTable = NULL;
+  {
+    PreserveReexecuteState preexces(&kit);
+    kit.jvms()->set_should_reexecute(true);
+    sizeTable = kit.new_array(__ makecon(TypeKlassPtr::make(ciTypeArrayKlass::make(T_INT))), __ intcon(10), 1);
+  }
+  AllocateArrayNode* sizeTable_alloc = AllocateArrayNode::Ideal_array_allocation(sizeTable, _gvn);
+  for (int i = 0; i < 10; i++) {
+    Node *elem = kit.array_element_address(sizeTable, __ intcon(i), T_INT);
+    __ store_to_memory(kit.control(), elem, __ intcon(SIZE_TABLE[i]), T_INT, C->get_alias_index(TypeAryPtr::INTS), MemNode::unordered, false, false, false);
   }
 
   RegionNode *final_merge = new RegionNode(3);
@@ -1281,7 +1259,6 @@ Node* PhaseStringOpts::int_stringSize(GraphKit& kit, Node* arg) {
     index->init_req(1, __ intcon(0));
     kit.gvn().set_type(index, TypeInt::INT);
     kit.set_control(loop);
-    Node* sizeTable = fetch_static_field(kit, size_table_field);
 
     Node* value = kit.load_array_element(sizeTable, index, TypeAryPtr::INTS, /* set_ctrl */ false);
     C->record_for_igvn(value);
@@ -1814,7 +1791,7 @@ void PhaseStringOpts::replace_string_concat(StringConcat* sc) {
   int args = MAX2(sc->num_arguments(), 1);
   RegionNode* overflow = new RegionNode(args);
   kit.gvn().set_type(overflow, Type::CONTROL);
-
+  
   // Create a hook node to hold onto the individual sizes since they
   // are need for the copying phase.
   Node* string_sizes = new Node(args);
@@ -1985,7 +1962,9 @@ void PhaseStringOpts::replace_string_concat(StringConcat* sc) {
                                           __ Bool(__ CmpI(length, __ intcon(0)), BoolTest::lt),
                                           PROB_MIN, COUNT_UNKNOWN);
       kit.set_control(__ IfFalse(iff));
+      // kit.set_memory(overflow_phi,kit.merged_memory());
       overflow->set_req(argi, __ IfTrue(iff));
+      // overflow_phi->set_req(argi, kit.merged_memory());
     }
   }
 
