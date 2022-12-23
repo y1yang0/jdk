@@ -92,6 +92,7 @@
 #include "services/memTracker.hpp"
 #include "services/threadIdTable.hpp"
 #include "services/threadService.hpp"
+#include "services/metaspaceDumper.hpp"
 #include "utilities/dtrace.hpp"
 #include "utilities/events.hpp"
 #include "utilities/macros.hpp"
@@ -802,6 +803,16 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
   if (DumpSharedSpaces) {
     MetaspaceShared::preload_and_dump();
     ShouldNotReachHere();
+  }
+
+  if (UseNewCode2) {
+    VM_MetaspaceDumper dumper;
+    if (Thread::current()->is_VM_thread()) {
+      assert(SafepointSynchronize::is_at_safepoint(), "Expected to be called at a safepoint");
+      dumper.doit();
+    } else {
+      VMThread::execute(&dumper);
+    }
   }
 
   return JNI_OK;
