@@ -1467,6 +1467,37 @@ static bool is_counted_loop_cmp(Node *cmp) {
          n->in(0)->as_CountedLoop()->phi() == n;
 }
 
+// TO WRITE
+static Node* get_reverse_cmp(int cmp_op, Node* cmp1, Node* cmp2) {
+  for (DUIterator_Fast imax, i = cmp1->fast_outs(imax); i < imax; i++) {
+    Node* u = cmp1->fast_out(i);
+    if (u->Opcode() == cmp_op && u->in(1) == cmp2 && u->in(2) == cmp1) {
+      return u;
+    }
+  }
+  return nullptr;
+}
+
+//------------------------------Identity-----------------------------------------
+Node* BoolNode::Identity(PhaseGVN* phase) {
+  // "Bool (CmpX a b)" is identical to "Bool (CmpX b a)"
+  Node *cmp = in(1);
+  Node *cmp1 = cmp->in(1);
+  Node* cmp2 = cmp->in(2);
+  Node* reverse_cmp = NULL;
+  if ((_test._test == BoolTest::eq || _test._test == BoolTest::ne) &&
+      (reverse_cmp = get_reverse_cmp(cmp->Opcode(), cmp1, cmp2)) != NULL) {
+    for (DUIterator_Fast imax, i = reverse_cmp->fast_outs(imax); i < imax; i++) {
+      Node* out = reverse_cmp->fast_out(i);
+      if (out->is_Bool() && out->as_Bool()->_test._test == _test._test &&
+          phase->type_or_null(out) != NULL){
+        return out;
+      }
+    }
+  }
+  return this;
+}
+
 //------------------------------Ideal------------------------------------------
 Node *BoolNode::Ideal(PhaseGVN *phase, bool can_reshape) {
   // Change "bool tst (cmp con x)" into "bool ~tst (cmp x con)".
