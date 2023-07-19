@@ -33,7 +33,7 @@ import jdk.test.lib.dcmd.CommandExecutor;
  *          java.compiler
  *          java.management
  *          jdk.internal.jvmstat/sun.jvmstat.monitor
- * @run testng/timeout=240 HeapDumpAllTest
+ * @run testng/othervm -Xlog:heapdump HeapDumpAllTest
  */
 public class HeapDumpAllTest extends HeapDumpTest {
     public HeapDumpAllTest() {

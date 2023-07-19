@@ -45,7 +45,7 @@ import jdk.test.lib.dcmd.PidJcmdExecutor;
  *          java.compiler
  *          java.management
  *          jdk.internal.jvmstat/sun.jvmstat.monitor
- * @run testng HeapDumpTest
+ * @run testng/othervm -Xlog:heapdump HeapDumpTest
  */
 public class HeapDumpTest {
     protected String heapDumpArgs = "";
