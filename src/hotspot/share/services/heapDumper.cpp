@@ -1574,7 +1574,7 @@ void DumpMerger::merge_file(char* path) {
 
   _writer->flush();
   if (segment_fs.fileSize() != total) {
-    log_error(heapdump)("Merged heap dump %s is incomplete, expect %ld but read %ld bytes",
+    log_error(heapdump)("Merged heap dump %s is incomplete, expect %lld but read %lld bytes",
                         path, segment_fs.fileSize(), total);
     _writer->set_error("Merged heap dump is incomplete");
     _has_error = true;
