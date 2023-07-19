@@ -1556,7 +1556,7 @@ void DumpMerger::merge_file(char* path) {
   assert(!SafepointSynchronize::is_at_safepoint(), "merging happens outside safepoint");
   TraceTime timer("Merge segmented heap file", TRACETIME_LOG(Info, heapdump));
 
-  fileStream segment_fs(path, "r");
+  fileStream segment_fs(path, "rb");
   if (!segment_fs.is_open()) {
     log_error(heapdump)("Can not open segmented heap file %s during merging", path);
     _writer->set_error("Can not open segmented heap file during merging");
@@ -1567,15 +1567,16 @@ void DumpMerger::merge_file(char* path) {
   jlong total = 0;
   size_t cnt = 0;
   char read_buf[4096];
-  while ((cnt = segment_fs.read(read_buf, 1, 4096)) != 0) {
+  while (!segment_fs.eof()) {
+    cnt += segment_fs.read(read_buf, 1, 4096);
     _writer->write_raw(read_buf, cnt);
     total += cnt;
   }
 
   _writer->flush();
   if (segment_fs.fileSize() != total) {
-    log_error(heapdump)("Merged heap dump %s is incomplete, expect %lld but read %lld bytes",
-                        path, segment_fs.fileSize(), total);
+    log_error(heapdump)("Merged heap dump %s is incomplete, expect " JLONG_FORMAT
+                        " but read " JLONG_FORMAT " bytes", path, segment_fs.fileSize(), total);
     _writer->set_error("Merged heap dump is incomplete");
     _has_error = true;
   }
