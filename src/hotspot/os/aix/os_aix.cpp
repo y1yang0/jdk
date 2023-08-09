@@ -2564,6 +2564,12 @@ int os::open(const char *path, int oflag, int mode) {
   return fd;
 }
 
+// copy data between two file descriptor within the kernel
+jlong os::sendfile(int out_fd, int in_fd, jlong* offset, jlong count) {
+  Unimplemented();
+  return 0;
+}
+
 // create binary file, rewriting existing file if required
 int os::create_binary_file(const char* path, bool rewrite_existing) {
   int oflags = O_WRONLY | O_CREAT;

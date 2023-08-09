@@ -87,6 +87,7 @@
 # include <sys/mman.h>
 # include <sys/stat.h>
 # include <sys/select.h>
+# include <sys/sendfile.h>
 # include <pthread.h>
 # include <signal.h>
 # include <endian.h>
@@ -5036,6 +5037,12 @@ int os::open(const char *path, int oflag, int mode) {
   return fd;
 }
 
+// copy data between two file descriptor within the kernel
+// the number of bytes written to out_fd is returned if transfer was successful
+// otherwise, returns -1 that implies an error
+jlong os::sendfile(int out_fd, int in_fd, jlong* offset, jlong count) {
+  return sendfile64(out_fd, in_fd, (off64_t*)offset, (size_t)count);
+}
 
 // create binary file, rewriting existing file if required
 int os::create_binary_file(const char* path, bool rewrite_existing) {

@@ -4808,6 +4808,12 @@ int os::open(const char *path, int oflag, int mode) {
   return fd;
 }
 
+// copy data between two file descriptor within the kernel
+jlong os::sendfile(int out_fd, int in_fd, jlong* offset, jlong count) {
+  Unimplemented();
+  return 0;
+}
+
 FILE* os::fdopen(int fd, const char* mode) {
   return ::_fdopen(fd, mode);
 }
