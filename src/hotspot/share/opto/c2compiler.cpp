@@ -577,6 +577,7 @@ bool C2Compiler::is_intrinsic_supported(const methodHandle& method) {
   case vmIntrinsics::_max:
   case vmIntrinsics::_min_strict:
   case vmIntrinsics::_max_strict:
+  case vmIntrinsics::_clampI:
   case vmIntrinsics::_arraycopy:
   case vmIntrinsics::_indexOfL:
   case vmIntrinsics::_indexOfU:

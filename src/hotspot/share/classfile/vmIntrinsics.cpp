@@ -305,6 +305,7 @@ bool vmIntrinsics::disabled_by_jvm_flags(vmIntrinsics::ID id) {
   case vmIntrinsics::_minF_strict:
   case vmIntrinsics::_maxD_strict:
   case vmIntrinsics::_minD_strict:
+  case vmIntrinsics::_clampI:
     if (!InlineMathNatives) return true;
     break;
   case vmIntrinsics::_fmaD:
@@ -579,6 +580,7 @@ bool vmIntrinsics::disabled_by_jvm_flags(vmIntrinsics::ID id) {
   case vmIntrinsics::_negateExactL:
   case vmIntrinsics::_subtractExactI:
   case vmIntrinsics::_subtractExactL:
+  case vmIntrinsics::_clampI:
     if (!UseMathExactIntrinsics || !InlineMathNatives) return true;
     break;
   case vmIntrinsics::_isDigit:

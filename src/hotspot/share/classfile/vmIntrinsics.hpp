@@ -149,6 +149,7 @@ class methodHandle;
   do_name(copySign_name, "copySign")                                                                                    \
   do_name(signum_name,"signum")                                                                                         \
   do_name(expand_name,"expand")                                                                                         \
+  do_name(clamp_name,"clamp")                                                                                           \
                                                                                                                         \
   do_intrinsic(_dabs,                     java_lang_Math,         abs_name,   double_double_signature,           F_S)   \
   do_intrinsic(_fabs,                     java_lang_Math,         abs_name,   float_float_signature,             F_S)   \
@@ -194,6 +195,7 @@ class methodHandle;
   do_intrinsic(_fcopySign,                java_lang_Math,         copySign_name,      float2_float_signature,    F_S)   \
   do_intrinsic(_dsignum,                  java_lang_Math,         signum_name,        double_double_signature,   F_S)   \
   do_intrinsic(_fsignum,                  java_lang_Math,         signum_name,        float_float_signature,     F_S)   \
+  do_intrinsic(_clampI,                   java_lang_Math,         clamp_name,         long_int_int_int_signature,F_S)   \
                                                                                                                         \
   /* StrictMath intrinsics, similar to what we have in Math. */                                                         \
   do_intrinsic(_min_strict,               java_lang_StrictMath,   min_name,           int2_int_signature,        F_S)   \

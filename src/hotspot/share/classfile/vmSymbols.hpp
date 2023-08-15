@@ -569,6 +569,7 @@ class SerializeClosure;
   template(float_float_signature,                     "(F)F")                                     \
   template(int_float_signature,                       "(I)F")                                     \
   template(long_int_signature,                        "(J)I")                                     \
+  template(long_int_int_int_signature,                "(JII)I")                                   \
   template(long_long_signature,                       "(J)J")                                     \
   template(long_double_signature,                     "(J)D")                                     \
   template(long_void_signature,                       "(J)V")                                     \

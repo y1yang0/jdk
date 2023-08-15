@@ -681,6 +681,9 @@ bool LibraryCallKit::try_to_inline(int predicate) {
   case vmIntrinsics::_max_strict:
     return inline_min_max(intrinsic_id());
 
+  case vmIntrinsic::_clampI:
+    return inline_clamp(intrinsic_id());
+
   case vmIntrinsics::_maxF:
   case vmIntrinsics::_minF:
   case vmIntrinsics::_maxD:
@@ -1898,6 +1901,68 @@ bool LibraryCallKit::inline_notify(vmIntrinsics::ID id) {
 //----------------------------inline_min_max-----------------------------------
 bool LibraryCallKit::inline_min_max(vmIntrinsics::ID id) {
   set_result(generate_min_max(id, argument(0), argument(1)));
+  return true;
+}
+
+void LibraryCallKit::generate_clampIL(vmIntrinsics::ID id, Node* value, Node* min, Node* max) {
+  // make sure arguments are sane
+  Node* cmp = _gvn.transform(new CmpINode(min, max));
+  Node* bol = _gvn.transform(new BoolNode(cmp, BoolTest::gt));
+  IfNode* check = create_and_map_if(control(), bol, PROB_UNLIKELY_MAG(3), COUNT_UNKNOWN);
+  Node* fast_path = _gvn.transform(new IfFalseNode(check));
+  Node* slow_path = _gvn.transform(new IfTrueNode(check));
+  {
+    PreserveJVMState pjvms(this);
+    PreserveReexecuteState preexecs(this);
+    jvms()->set_should_reexecute(true);
+
+    set_control(slow_path);
+    set_i_o(i_o());
+
+    uncommon_trap(Deoptimization::Reason_intrinsic,
+                  Deoptimization::Action_none);
+  }
+  switch (id) {
+    case vmIntrinsic::_clampI:
+      Node* t1 = _gvn.transform(new MaxINode(value, min));
+      Node* t2 = _gvn.transform(new MinINode(t1, max));
+      return t2;
+    case vmIntrinsic::_clampL:
+      Node* t1 = _gvn.transform(new MaxLNode(value, min));
+      Node* t2 = _gvn.transform(new MinLNode(t1, max));
+      return t2;
+    default:
+      fatal_unexpected_iid(id);
+      break;
+  }
+  return nullptr;
+}
+
+void LibraryCallKit::generate_clampFD(vmIntrinsics::ID id) {
+  
+}
+
+bool LibraryCallKit::inline_clamp(vmIntrinsics::ID id) {
+  Node* result = nullptr;
+  Node* value = argument(0);
+  Node* min = argument(1);
+  Node* max = argument(2);
+  Node* res = nullptr;
+  // clamp value to fit between min and max
+  switch (id) {
+  case vmIntrinsics::_clampI:
+  case vmIntrinsics::_clampL:
+    res = generate_clampIL(id, value, min, max);
+    break;
+  case vmIntrinsics::_clampD:
+  case vmIntrinsics::_clampF:
+    break;
+  default:
+    fatal_unexpected_iid(id);
+    break;
+  }
+  set_control(fast_path);
+  set_result(t2);
   return true;
 }
 
