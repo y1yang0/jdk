@@ -2218,7 +2218,7 @@ int HeapDumper::dump(const char* path, outputStream* out, int compression, bool 
   if (dumper.is_parallel_dump()) {
     DumpMerger merger(path, &writer, dumper.dump_seq());
     Thread* current_thread = Thread::current();
-    if (current_thread->is_AttachListener_thread()) {
+    if (current_thread->is_Java_thread()) {
       // perform heapdump file merge operation in the current thread prevents us
       // from occupying the VM Thread, which in turn affects the occurrence of
       // GC and other VM operations.

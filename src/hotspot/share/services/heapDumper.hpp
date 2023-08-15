@@ -60,8 +60,8 @@ class HeapDumper : public StackObj {
   // dumps the heap to the specified file, returns 0 if success.
   // additional info is written to out if not null.
   // compression >= 0 creates a gzipped file with the given compression level.
-  // parallel_thread_num >= 0 indicates thread numbers of parallel object dump
-  int dump(const char* path, outputStream* out = nullptr, int compression = -1, bool overwrite = false, uint parallel_thread_num = 1);
+  // num_dump_threads >= 0 indicates thread numbers of parallel object dump
+  int dump(const char* path, outputStream* out = nullptr, int compression = -1, bool overwrite = false, uint num_dump_threads = 1);
 
   // returns error message (resource allocated), or null if no error
   char* error_as_C_string() const;
@@ -71,7 +71,7 @@ class HeapDumper : public StackObj {
   static void dump_heap_from_oome()    NOT_SERVICES_RETURN;
 
   // Parallel thread number for heap dump, initialize based on active processor count.
-  static uint default_num_of_dump_threads() {
+  static uint default_num_dump_threads() {
     return MAX2<uint>(1, (uint)os::initial_active_processor_count() * 3 / 8);
   }
 };

@@ -482,7 +482,7 @@ HeapDumpDCmd::HeapDumpDCmd(outputStream* output, bool heap) :
 
 void HeapDumpDCmd::execute(DCmdSource source, TRAPS) {
   jlong level = -1; // -1 means no compression.
-  jlong parallel = HeapDumper::default_num_of_dump_threads();
+  jlong parallel = HeapDumper::default_num_dump_threads();
 
   if (_gzip.is_set()) {
     level = _gzip.value();
